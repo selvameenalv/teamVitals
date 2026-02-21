@@ -268,8 +268,23 @@ const SLEEP_OPTIONS = [
   { id:"s6",  label:"6h",   emoji:"😐", points:1 },
   { id:"s7",  label:"7h",   emoji:"🙂", points:2 },
   { id:"s8",  label:"8h",   emoji:"😊", points:3 },
-  { id:"s9",  label:"9h+",  emoji:"😅", points:1 },
+  { id:"s9",  label:"9h+",  emoji:"😅",  points:1 },
 ];
+const SCREEN_DAY_OPTIONS = [
+  { id:"low",  label:"Low",    emoji:"🟢", desc:"< 1h",  points:3 },
+  { id:"med",  label:"Medium", emoji:"🟡", desc:"1–3h",  points:1 },
+  { id:"high", label:"High",   emoji:"🔴", desc:"3h+",   points:0 },
+];
+const SCREEN_BED_OPTIONS = [
+  { id:"none", label:"None",   emoji:"📵", desc:"No screens 1h before bed", points:2 },
+  { id:"some", label:"Some",   emoji:"😐", desc:"30–60 mins before bed",    points:1 },
+  { id:"alot", label:"A lot",  emoji:"📱", desc:"Screens right until sleep", points:0 },
+];
+function getScreenPoints(entry) {
+  const d = SCREEN_DAY_OPTIONS.find(o => o.id === entry.screenDay);
+  const b = SCREEN_BED_OPTIONS.find(o => o.id === entry.screenBed);
+  return (d ? d.points : 0) + (b ? b.points : 0);
+}
 function getSleepPoints(sleepId) {
   const s = SLEEP_OPTIONS.find(o => o.id === sleepId);
   return s ? s.points : 0;
@@ -304,7 +319,8 @@ function getScoreForEntry(entry, sweetsStreak) {
   const waterPts = Math.floor((entry.water || 0) / 0.5);
   const sweetsPts = entry.hadSweets === false ? getSweetsDayPoints(sweetsStreak) : 0;
   const sleepPts = getSleepPoints(entry.sleep || '');
-  return actPts + waterPts + sweetsPts + sleepPts;
+  const screenPts = getScreenPoints(entry);
+  return actPts + waterPts + sweetsPts + sleepPts + screenPts;
 }
 
 function getActivityStreak(entries, onDate) {
@@ -476,13 +492,30 @@ function renderLog() {
     </button>`).join("");
 
   document.getElementById("app-content").innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      ${[
+        { label:"🏃 Activity",  href:"section-activity" },
+        { label:"💧 Water",     href:"section-water" },
+        { label:"🍬 Sweets",    href:"section-sweets" },
+        { label:"😴 Sleep",     href:"section-sleep" },
+        { label:"📱 Screen",    href:"section-screen" },
+      ].map(b => `
+        <button onclick="document.getElementById('${b.href}').scrollIntoView({behavior:'smooth'})" style="
+          padding:8px 14px;border-radius:20px;cursor:pointer;font-family:inherit;
+          font-size:12px;font-weight:600;transition:all 0.2s;
+          background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+          color:rgba(255,255,255,0.8);">
+          ${b.label}
+        </button>`).join('')}
+    </div>
+
     <div class="score-card">
       <div class="score-label">Today's score for ${currentUser}</div>
       <div class="score-number" style="color:${scoreColor}">${score}</div>
       <div class="score-status" id="save-status">${saving ? "saving..." : "saved ✓"}</div>
     </div>
 
-    <div class="section">
+    <div class="section" id="section-activity">
       <div class="section-header">
         <div class="section-title">🏃 Physical Activity</div>
         ${actBadgeHTML}
@@ -491,7 +524,7 @@ function renderLog() {
       <div class="activity-grid">${actButtons}</div>
     </div>
 
-    <div class="section">
+    <div class="section" id="section-water">
       <div class="section-header"><div class="section-title">💧 Water Intake</div></div>
       <div class="section-sub">How many litres today?</div>
       <div class="water-grid">
@@ -501,7 +534,7 @@ function renderLog() {
       <div class="hint">Every 0.5L = +1 pt · Max +8 pts at 4L</div>
     </div>
 
-    <div class="section">
+    <div class="section" id="section-sweets">
       <div class="section-header">
         <div class="section-title">🍬 Sweets Today?</div>
         ${sweetsBadgeHTML}
@@ -523,7 +556,7 @@ function renderLog() {
       ${entry.hadSweets === true ? `<div class="reset-msg">That's okay! 😊 Start fresh tomorrow and build your streak back up.</div>` : ""}
     </div>
 
-    <div class="section">
+    <div class="section" id="section-sleep">
       <div class="section-header"><div class="section-title">😴 Sleep Hours</div></div>
       <div class="section-sub">How many hours did you sleep last night? Round to the nearest option.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
@@ -542,6 +575,47 @@ function renderLog() {
           </button>`).join('')}
       </div>
       <div class="hint">💤 &lt;4h or 5h = 0 pts &nbsp;|&nbsp; 6h = +1 &nbsp;|&nbsp; 7h = +2 &nbsp;|&nbsp; 8h = +3 &nbsp;|&nbsp; 9h+ = +1</div>
+    </div>
+
+    <div class="section" id="section-screen">
+      <div class="section-header"><div class="section-title">📱 Screen Time</div></div>
+      <div class="section-sub">Recreational screen time only — not work. Be honest! Max +5 pts.</div>
+
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.6);margin-bottom:10px">During the day</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+        ${SCREEN_DAY_OPTIONS.map(s => `
+          <button onclick="logScreenDay('${s.id}')" style="
+            flex:1;min-width:90px;padding:14px 8px;border-radius:12px;cursor:pointer;text-align:center;
+            font-family:inherit;font-size:13px;transition:all 0.2s;
+            background:${entry.screenDay === s.id ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'};
+            border:${entry.screenDay === s.id ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.12)'};
+            color:#fff;font-weight:${entry.screenDay === s.id ? 700 : 400}">
+            <div style="font-size:24px">${s.emoji}</div>
+            <div style="margin-top:6px;font-weight:700">${s.label}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">${s.desc}</div>
+            <div style="font-size:11px;color:${entry.screenDay === s.id ? '#10b981' : 'rgba(255,255,255,0.4)'};margin-top:3px">
+              ${s.points > 0 ? '+' + s.points + ' pts' : '—'}
+            </div>
+          </button>`).join('')}
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.6);margin-bottom:10px">Before bed</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        ${SCREEN_BED_OPTIONS.map(s => `
+          <button onclick="logScreenBed('${s.id}')" style="
+            flex:1;min-width:90px;padding:14px 8px;border-radius:12px;cursor:pointer;text-align:center;
+            font-family:inherit;font-size:13px;transition:all 0.2s;
+            background:${entry.screenBed === s.id ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.06)'};
+            border:${entry.screenBed === s.id ? '2px solid #818cf8' : '1px solid rgba(255,255,255,0.12)'};
+            color:#fff;font-weight:${entry.screenBed === s.id ? 700 : 400}">
+            <div style="font-size:24px">${s.emoji}</div>
+            <div style="margin-top:6px;font-weight:700">${s.label}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">${s.desc}</div>
+            <div style="font-size:11px;color:${entry.screenBed === s.id ? '#818cf8' : 'rgba(255,255,255,0.4)'};margin-top:3px">
+              ${s.points > 0 ? '+' + s.points + ' pts' : '—'}
+            </div>
+          </button>`).join('')}
+      </div>
     </div>
   `;
 }
@@ -663,6 +737,16 @@ window.logSweets = function(val) {
   const entries = allData[currentUser] || {};
   const entry = entries[today] || {};
   saveEntry(currentUser, today, { ...entry, hadSweets: val }).then(() => renderLog());
+};
+window.logScreenDay = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, screenDay: id }).then(() => renderLog());
+};
+window.logScreenBed = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, screenBed: id }).then(() => renderLog());
 };
 window.logSleep = function(id) {
   const entries = allData[currentUser] || {};
