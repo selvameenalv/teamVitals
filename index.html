@@ -192,14 +192,36 @@
 </head>
 <body>
 
+<!-- Background name watermark -->
+<div id="name-watermark" style="
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%) rotate(-25deg);
+  font-family:'Trebuchet MS',Georgia,serif;
+  font-size:120px;
+  font-weight:900;
+  color:rgba(255,255,255,0.04);
+  pointer-events:none;
+  z-index:0;
+  white-space:nowrap;
+  letter-spacing:-2px;
+  user-select:none;
+"></div>
+
 <div class="header">
   <div>
     <div class="logo">⚡ TeamVitals</div>
     <div class="logo-sub" id="header-date"></div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:13px;color:rgba(255,255,255,0.5);">You are:</span>
-    <select class="user-select" id="user-select"></select>
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(167,139,250,0.15);border:1.5px solid rgba(167,139,250,0.5);border-radius:12px;padding:6px 14px;">
+      <span style="font-size:16px">👤</span>
+      <div>
+        <div style="font-size:10px;color:rgba(167,139,250,0.8);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Logging as</div>
+        <select class="user-select" id="user-select" style="background:transparent;border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer;outline:none;padding:0;font-family:inherit;"></select>
+      </div>
+    </div>
   </div>
   <nav class="nav">
     <button class="nav-btn active" onclick="setView('log')" id="nav-log">📝 Log Today</button>
@@ -251,7 +273,7 @@ const WATER_LEVELS = [0.5,1,1.5,2,2.5,3,3.5,4];
 
 // ── State ────────────────────────────────────────────────────────
 let allData = {};      // { memberName: { "2025-01-01": { activity, water, hadSweets } } }
-let currentUser = TEAM_MEMBERS[0];
+let currentUser = null;
 let currentView = "log";
 let saving = false;
 let loaded = false;
@@ -413,16 +435,51 @@ function setView(v) {
 
 function setUser(name) {
   currentUser = name;
+  const sel = document.getElementById("user-select");
+  if (sel) sel.value = name;
+  updateStickyBadge();
   render();
 }
 
 // ── Main render ──────────────────────────────────────────────────
 function render() {
   if (!loaded) return;
+  if (!currentUser) { renderNamePicker(); return; }
   if (currentView === "log") renderLog();
   else if (currentView === "board") renderLeaderboard();
   else renderTeam();
 }
+
+function renderNamePicker() {
+  const nameButtons = TEAM_MEMBERS.map(name => `
+    <button onclick="pickName('${name}')" style="
+      padding:14px 20px;border-radius:12px;cursor:pointer;font-family:inherit;
+      font-size:15px;font-weight:600;transition:all 0.2s;text-align:center;
+      background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+      color:#fff;width:100%;">
+      ${name}
+    </button>`).join('');
+
+  document.getElementById("app-content").innerHTML = `
+    <div style="max-width:480px;margin:0 auto;text-align:center;padding:20px 0 40px">
+      <div style="font-size:48px;margin-bottom:16px">👤</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:8px">Who are you?</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:32px">Select your name to start logging your health for today.</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        ${nameButtons}
+      </div>
+    </div>
+  `;
+}
+
+window.pickName = function(name) {
+  currentUser = name;
+  // Sync the header dropdown
+  const sel = document.getElementById("user-select");
+  if (sel) sel.value = name;
+  updateStickyBadge();
+  render();
+};
 
 // ── LOG VIEW ─────────────────────────────────────────────────────
 function renderLog() {
@@ -760,15 +817,54 @@ window.setUser = setUser;
 document.getElementById("header-date").textContent = `${today} · ${TEAM_MEMBERS.length} managers`;
 
 const sel = document.getElementById("user-select");
+const placeholder = document.createElement("option");
+placeholder.value = ""; placeholder.textContent = "Select name...";
+placeholder.disabled = true; placeholder.selected = true;
+sel.appendChild(placeholder);
 TEAM_MEMBERS.forEach(m => {
   const opt = document.createElement("option");
   opt.value = m; opt.textContent = m;
   sel.appendChild(opt);
 });
-sel.addEventListener("change", e => setUser(e.target.value));
+sel.addEventListener("change", e => { if (e.target.value) setUser(e.target.value); });
+updateStickyBadge();
 
 subscribeToUpdates();
 loadAllData();
+
+// ── Sticky name badge ─────────────────────────────────────────────
+function updateStickyBadge() {
+  const badge = document.getElementById("sticky-user-badge");
+  if (badge) badge.textContent = currentUser ? "👤 " + currentUser : "";
+  const watermark = document.getElementById("name-watermark");
+  if (watermark) watermark.textContent = currentUser || "";
+}
+const origSetUser = window.setUser;
+window.setUser = function(name) {
+  origSetUser(name);
+  updateStickyBadge();
+};
 </script>
+
+<!-- Sticky floating name badge -->
+<div id="sticky-user-badge" style="
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:rgba(167,139,250,0.25);
+  border:1.5px solid rgba(167,139,250,0.6);
+  backdrop-filter:blur(10px);
+  color:#fff;
+  font-family:'Trebuchet MS',Georgia,serif;
+  font-size:13px;
+  font-weight:700;
+  padding:10px 16px;
+  border-radius:20px;
+  z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  pointer-events:none;
+  letter-spacing:0.2px;
+">👤 Anand</div>
+
 </body>
 </html>
