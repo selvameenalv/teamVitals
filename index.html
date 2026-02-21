@@ -261,6 +261,20 @@ function getTodayKey() {
 }
 const today = getTodayKey();
 
+// ── Sleep ────────────────────────────────────────────────────────────────
+const SLEEP_OPTIONS = [
+  { id:"lt4", label:"< 4h", emoji:"😵", points:0 },
+  { id:"s5",  label:"5h",   emoji:"😴", points:0 },
+  { id:"s6",  label:"6h",   emoji:"😐", points:1 },
+  { id:"s7",  label:"7h",   emoji:"🙂", points:2 },
+  { id:"s8",  label:"8h",   emoji:"😊", points:3 },
+  { id:"s9",  label:"9h+",  emoji:"⭐",     points:1 },
+];
+function getSleepPoints(sleepId) {
+  const s = SLEEP_OPTIONS.find(o => o.id === sleepId);
+  return s ? s.points : 0;
+}
+
 // ── Scoring ──────────────────────────────────────────────────────
 function getSweetsDayPoints(day) {
   if (day <= 0) return 0;
@@ -289,7 +303,8 @@ function getScoreForEntry(entry, sweetsStreak) {
   const actPts = act ? act.points : 0;
   const waterPts = Math.floor((entry.water || 0) / 0.5);
   const sweetsPts = entry.hadSweets === false ? getSweetsDayPoints(sweetsStreak) : 0;
-  return actPts + waterPts + sweetsPts;
+  const sleepPts = getSleepPoints(entry.sleep || '');
+  return actPts + waterPts + sweetsPts + sleepPts;
 }
 
 function getActivityStreak(entries, onDate) {
@@ -507,6 +522,27 @@ function renderLog() {
       </div>
       ${entry.hadSweets === true ? `<div class="reset-msg">That's okay! 😊 Start fresh tomorrow and build your streak back up.</div>` : ""}
     </div>
+
+    <div class="section">
+      <div class="section-header"><div class="section-title">😴 Sleep Hours</div></div>
+      <div class="section-sub">How many hours did you sleep last night? Round to the nearest option.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        ${SLEEP_OPTIONS.map(s => `
+          <button onclick="logSleep('${s.id}')" style="
+            flex:1;min-width:80px;padding:14px 8px;border-radius:12px;cursor:pointer;text-align:center;
+            font-family:inherit;font-size:13px;transition:all 0.2s;
+            background:${entry.sleep === s.id ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)'};
+            border:${entry.sleep === s.id ? '2px solid #818cf8' : '1px solid rgba(255,255,255,0.12)'};
+            color:#fff;font-weight:${entry.sleep === s.id ? 700 : 400}">
+            <div style="font-size:24px">${s.emoji}</div>
+            <div style="margin-top:6px">${s.label}</div>
+            <div style="font-size:11px;color:${entry.sleep === s.id ? '#818cf8' : 'rgba(255,255,255,0.4)'};margin-top:2px">
+              ${s.points > 0 ? '+' + s.points + ' pts' : '—'}
+            </div>
+          </button>`).join('')}
+      </div>
+      <div class="hint">💤 &lt;4h or 5h = 0 pts &nbsp;|&nbsp; 6h = +1 &nbsp;|&nbsp; 7h = +2 &nbsp;|&nbsp; 8h = +3 &nbsp;|&nbsp; 9h+ = +1</div>
+    </div>
   `;
 }
 
@@ -520,6 +556,8 @@ function renderLeaderboard() {
     const act = p.todayEntry ? ACTIVITIES.find(a => a.id === p.todayEntry.activity) : null;
     const waterBadge = p.todayEntry?.water > 0 ? `<span class="lb-badge" style="background:rgba(96,165,250,0.2)">💧 ${p.todayEntry.water}L</span>` : "";
     const sweetsBadge = p.sweetsStreak > 0 ? `<span class="lb-badge" style="background:rgba(251,191,36,0.2)">🍬 ${p.sweetsStreak}d</span>` : "";
+    const sleepOpt = SLEEP_OPTIONS.find(s => s.id === p.todayEntry?.sleep);
+    const sleepBadge = sleepOpt ? `<span class="lb-badge" style="background:rgba(99,102,241,0.2)">${sleepOpt.emoji} ${sleepOpt.label}</span>` : "";
     const streakSub = p.actStreak > 0 ? `🔥 ${p.actStreak}d activity streak` : "No activity streak";
     const sweetsSub = p.sweetsStreak > 0 ? ` · 🍬 ${p.sweetsStreak}d sweets-free` : "";
     const actSub = act ? ` · ${act.emoji} today` : " · hasn't logged today";
@@ -530,7 +568,7 @@ function renderLeaderboard() {
           <div class="lb-name">${p.name}${isMe ? '<span class="lb-you">← you</span>' : ""}</div>
           <div class="lb-sub">${streakSub}${sweetsSub}${actSub}</div>
         </div>
-        <div class="lb-badges">${waterBadge}${sweetsBadge}</div>
+        <div class="lb-badges">${waterBadge}${sweetsBadge}${sleepBadge}</div>
         <div class="lb-score">
           <div class="lb-score-num" style="color:${i === 0 ? '#fbbf24' : '#fff'}">${p.totalScore}</div>
           <div class="lb-score-label">total pts</div>
@@ -571,6 +609,7 @@ function renderTeam() {
       <span style="margin-left:8px">${act?.emoji||""}</span>
       ${p.todayEntry.water > 0 ? `<span style="margin-left:6px">💧${p.todayEntry.water}L</span>` : ""}
       ${p.sweetsStreak > 0 ? `<span style="margin-left:6px">🍬${p.sweetsStreak}d</span>` : ""}
+      ${p.todayEntry?.sleep ? `<span style="margin-left:6px">${SLEEP_OPTIONS.find(s=>s.id===p.todayEntry.sleep)?.emoji||''}</span>` : ""}
       <span style="margin-left:8px;color:#a78bfa;font-weight:700">+${p.todayScore}pt</span>
     </div>`;
   }).join("");
@@ -624,6 +663,11 @@ window.logSweets = function(val) {
   const entries = allData[currentUser] || {};
   const entry = entries[today] || {};
   saveEntry(currentUser, today, { ...entry, hadSweets: val }).then(() => renderLog());
+};
+window.logSleep = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, sleep: id }).then(() => renderLog());
 };
 window.setView = setView;
 window.setUser = setUser;
