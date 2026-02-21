@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚡ TeamVitals</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      font-family: 'Trebuchet MS', Georgia, serif;
+      color: #fff;
+      padding-bottom: 60px;
+    }
+    select option { background: #302b63; }
+    button { font-family: inherit; }
+    .header {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .logo { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+    .logo-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .user-select {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .nav { display: flex; gap: 8px; }
+    .nav-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .nav-btn.active {
+      background: rgba(167,139,250,0.3);
+      border-color: rgba(167,139,250,0.6);
+      font-weight: 700;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    .score-card {
+      text-align: center;
+      margin-bottom: 32px;
+      padding: 24px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .score-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+    .score-number { font-size: 64px; font-weight: 900; }
+    .score-status { font-size: 13px; color: rgba(255,255,255,0.4); }
+    .section {
+      margin-bottom: 28px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 20px 20px 24px;
+    }
+    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+    .section-title { font-size: 17px; font-weight: 700; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700;
+    }
+    .section-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 16px; margin-top: 4px; }
+    .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .act-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 14px 10px;
+      color: #fff;
+      cursor: pointer;
+      text-align: center;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .act-btn.selected {
+      background: rgba(167,139,250,0.25);
+      border: 2px solid #a78bfa;
+      font-weight: 700;
+    }
+    .act-emoji { font-size: 26px; }
+    .act-pts { font-size: 11px; color: #a78bfa; margin-top: 2px; }
+    .water-grid { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .water-btn {
+      width: 58px; height: 58px; border-radius: 12px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: all 0.15s;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    }
+    .water-btn.filled {
+      background: rgba(96,165,250,0.3);
+      border: 2px solid #60a5fa;
+    }
+    .water-total { font-size: 18px; font-weight: 700; margin-left: 8px; }
+    .hint { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 8px; }
+    .streak-card {
+      margin-bottom: 20px; padding: 14px 18px;
+      background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .streak-num { font-size: 28px; font-weight: 900; color: #fbbf24; }
+    .streak-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .tier-pills { flex: 1; display: flex; gap: 12px; flex-wrap: wrap; }
+    .tier-pill {
+      padding: 6px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      font-size: 12px;
+    }
+    .tier-pill.active {
+      background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.5);
+    }
+    .tier-pill .tier-pts { color: rgba(255,255,255,0.4); }
+    .tier-pill.active .tier-pts { color: #fbbf24; }
+    .sweets-btns { display: flex; gap: 16px; }
+    .sweets-btn {
+      flex: 1; padding: 20px; border-radius: 14px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #fff; cursor: pointer; font-size: 16px; transition: all 0.2s; text-align: center;
+    }
+    .sweets-btn.no-sweets.selected { background: rgba(34,197,94,0.2); border: 2px solid #22c55e; font-weight: 700; }
+    .sweets-btn.had-sweets.selected { background: rgba(239,68,68,0.2); border: 2px solid #ef4444; font-weight: 700; }
+    .sweets-btn-emoji { font-size: 32px; }
+    .sweets-btn-hint { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .sweets-btn.no-sweets.selected .sweets-btn-hint { color: #22c55e; }
+    .sweets-btn.had-sweets.selected .sweets-btn-hint { color: #ef4444; }
+    .reset-msg {
+      margin-top: 14px; padding: 10px 16px; background: rgba(239,68,68,0.1);
+      border-radius: 10px; font-size: 13px; color: rgba(255,255,255,0.6); text-align: center;
+    }
+    .leaderboard-row {
+      border-radius: 14px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px; margin-bottom: 10px;
+    }
+    .medal { min-width: 44px; text-align: center; font-weight: 700; }
+    .lb-name { font-weight: 700; font-size: 16px; }
+    .lb-you { font-size: 12px; color: #a78bfa; margin-left: 6px; }
+    .lb-sub { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 3px; }
+    .lb-badges { display: flex; gap: 8px; align-items: center; }
+    .lb-badge { font-size: 12px; padding: 3px 8px; border-radius: 6px; }
+    .lb-score { text-align: right; }
+    .lb-score-num { font-size: 24px; font-weight: 900; }
+    .lb-score-label { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .highlights-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px; margin-bottom: 28px;
+    }
+    .highlight-card {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .highlight-label { font-size: 13px; color: rgba(255,255,255,0.5); }
+    .highlight-name { font-size: 18px; font-weight: 800; margin-top: 4px; }
+    .highlight-val { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .team-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .team-chip {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 10px 14px; font-size: 13px;
+    }
+    .team-chip.me { background: rgba(167,139,250,0.2); }
+    .not-logged-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .not-logged-chip {
+      background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.15);
+      border-radius: 10px; padding: 8px 14px; font-size: 13px; color: rgba(255,255,255,0.4);
+    }
+    .loading { text-align: center; padding: 60px; color: rgba(255,255,255,0.4); font-size: 18px; }
+    .section-heading2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">⚡ TeamVitals</div>
+    <div class="logo-sub" id="header-date"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:13px;color:rgba(255,255,255,0.5);">You are:</span>
+    <select class="user-select" id="user-select"></select>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="setView('log')" id="nav-log">📝 Log Today</button>
+    <button class="nav-btn" onclick="setView('board')" id="nav-board">🏆 Leaderboard</button>
+    <button class="nav-btn" onclick="setView('team')" id="nav-team">👥 Team View</button>
+  </nav>
+</div>
+
+<div class="container">
+  <div id="app-content"><div class="loading">Connecting to database...</div></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Firebase Config ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDOYCmjQwJuFzx-rJWk7vbfMwjFWOvxNH4",
+  authDomain: "teamvitals-ede36.firebaseapp.com",
+  databaseURL: "https://teamvitals-ede36-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "teamvitals-ede36",
+  storageBucket: "teamvitals-ede36.firebasestorage.app",
+  messagingSenderId: "35054155890",
+  appId: "1:35054155890:web:a2250aa61d5241da38eaeb"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── Constants ────────────────────────────────────────────────────
+const TEAM_MEMBERS = [
+  "Anand","Anil","Anjali","Gowri","Harini",
+  "Kshama","Nagaraj","Namratha","Nischitha","Pavan","Raghav",
+  "Rashmitha","Samya","Selva","Shabil","Sreeharsha","Sunil","Vivek"
+];
+const ACTIVITIES = [
+  { id:"run",   label:"Running/Jogging", emoji:"🏃", points:3 },
+  { id:"walk",  label:"Walking",         emoji:"🚶", points:1 },
+  { id:"gym",   label:"Gym",             emoji:"💪", points:3 },
+  { id:"yoga",  label:"Yoga",            emoji:"🧘", points:2 },
+  { id:"swim",  label:"Swimming",        emoji:"🏊", points:3 },
+  { id:"cycle", label:"Cycling",         emoji:"🚴", points:3 },
+  { id:"dance", label:"Zumba",           emoji:"💃", points:3 },
+  { id:"sport", label:"Team Sport",      emoji:"⚽", points:3 },
+  { id:"rest",  label:"Rest Day",        emoji:"😴", points:0 },
+];
+const WATER_LEVELS = [0.5,1,1.5,2,2.5,3,3.5,4];
+
+// ── State ────────────────────────────────────────────────────────
+let allData = {};      // { memberName: { "2025-01-01": { activity, water, hadSweets } } }
+let currentUser = TEAM_MEMBERS[0];
+let currentView = "log";
+let saving = false;
+let loaded = false;
+
+function getTodayKey() {
+  return new Date().toISOString().split("T")[0];
+}
+const today = getTodayKey();
+
+// ── Scoring ──────────────────────────────────────────────────────
+function getSweetsDayPoints(day) {
+  if (day <= 0) return 0;
+  if (day <= 7) return 1;
+  if (day <= 15) return 3;
+  return 5;
+}
+
+function getSweetsStreak(entries, onDate) {
+  let streak = 0;
+  const d = new Date(onDate);
+  while (true) {
+    const key = d.toISOString().split("T")[0];
+    const e = entries[key];
+    if (!e || e.hadSweets === undefined || e.hadSweets === null) break;
+    if (e.hadSweets === true) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function getScoreForEntry(entry, sweetsStreak) {
+  if (!entry) return 0;
+  const act = ACTIVITIES.find(a => a.id === entry.activity);
+  const actPts = act ? act.points : 0;
+  const waterPts = Math.floor((entry.water || 0) / 0.5);
+  const sweetsPts = entry.hadSweets === false ? getSweetsDayPoints(sweetsStreak) : 0;
+  return actPts + waterPts + sweetsPts;
+}
+
+function getActivityStreak(entries, onDate) {
+  let streak = 0;
+  const d = new Date(onDate);
+  while (true) {
+    const key = d.toISOString().split("T")[0];
+    const e = entries[key];
+    if (!e || !e.activity || e.activity === "rest") break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function getTotalScore(entries) {
+  const dates = Object.keys(entries).sort();
+  let total = 0;
+  let lastMilestone = 0;
+  for (const date of dates) {
+    const entry = entries[date];
+    const ss = getSweetsStreak(entries, date);
+    total += getScoreForEntry(entry, ss);
+    const actStreak = getActivityStreak(entries, date);
+    const milestones = Math.floor(actStreak / 7);
+    if (milestones > lastMilestone) {
+      total += (milestones - lastMilestone) * 10;
+      lastMilestone = milestones;
+    }
+  }
+  return total;
+}
+
+function getMedal(rank) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return `#${rank}`;
+}
+
+// ── Firebase I/O ─────────────────────────────────────────────────
+async function loadAllData() {
+  const promises = TEAM_MEMBERS.map(async name => {
+    try {
+      const snap = await getDoc(doc(db, "health", name));
+      if (snap.exists()) allData[name] = snap.data();
+      else allData[name] = {};
+    } catch(e) { allData[name] = {}; }
+  });
+  await Promise.all(promises);
+  loaded = true;
+  render();
+}
+
+// Live updates — listen to all member docs
+function subscribeToUpdates() {
+  TEAM_MEMBERS.forEach(name => {
+    onSnapshot(doc(db, "health", name), snap => {
+      allData[name] = snap.exists() ? snap.data() : {};
+      if (loaded) render();
+    });
+  });
+}
+
+async function saveEntry(name, date, data) {
+  saving = true;
+  renderSavingStatus();
+  allData[name] = allData[name] || {};
+  allData[name][date] = { ...(allData[name][date] || {}), ...data };
+  try {
+    await setDoc(doc(db, "health", name), allData[name]);
+  } catch(e) { console.error("Save failed", e); }
+  saving = false;
+  renderSavingStatus();
+}
+
+// ── Render helpers ───────────────────────────────────────────────
+function renderSavingStatus() {
+  const el = document.getElementById("save-status");
+  if (el) el.textContent = saving ? "saving..." : "saved ✓";
+}
+
+function setView(v) {
+  currentView = v;
+  ["log","board","team"].forEach(id => {
+    document.getElementById("nav-"+id).classList.toggle("active", id === v);
+  });
+  render();
+}
+
+function setUser(name) {
+  currentUser = name;
+  render();
+}
+
+// ── Main render ──────────────────────────────────────────────────
+function render() {
+  if (!loaded) return;
+  if (currentView === "log") renderLog();
+  else if (currentView === "board") renderLeaderboard();
+  else renderTeam();
+}
+
+// ── LOG VIEW ─────────────────────────────────────────────────────
+function renderLog() {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  const sweetsStreak = getSweetsStreak(entries, today);
+  const actStreak = getActivityStreak(entries, today);
+  const score = getScoreForEntry(entry, sweetsStreak);
+  const scoreColor = score > 5 ? "#a78bfa" : score > 0 ? "#60a5fa" : "#6b7280";
+
+  const previewStreak = entry.hadSweets === false ? sweetsStreak : sweetsStreak + 1;
+  const noSweetsPts = getSweetsDayPoints(previewStreak);
+
+  // Activity streak badge
+  let actBadgeHTML = "";
+  if (actStreak > 0) {
+    const daysToNext = 7 - (actStreak % 7);
+    const isBonus = actStreak % 7 === 0;
+    const badgeText = isBonus ? `🔥 ${actStreak}-day streak · +10 bonus! 🎉` : `🔥 ${actStreak}-day streak · ${daysToNext} days to bonus`;
+    const badgeColor = isBonus ? "#fbbf24" : "#f97316";
+    const badgeBg = isBonus ? "rgba(251,191,36,0.15)" : "rgba(249,115,22,0.15)";
+    const badgeBorder = isBonus ? "rgba(251,191,36,0.4)" : "rgba(249,115,22,0.4)";
+    actBadgeHTML = `<span class="badge" style="background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};">${badgeText}</span>`;
+  }
+
+  // Sweets streak badge
+  let sweetsBadgeHTML = "";
+  if (sweetsStreak > 0) {
+    sweetsBadgeHTML = `<span class="badge" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);color:#fbbf24;">🔥 ${sweetsStreak}-day sweets-free streak</span>`;
+  }
+
+  // Sweets streak card
+  let streakCardHTML = "";
+  if (sweetsStreak > 0) {
+    const tiers = [
+      { label:"Days 1–7", pts:"1 pt/day", active: sweetsStreak <= 7 },
+      { label:"Days 8–15", pts:"3 pts/day", active: sweetsStreak > 7 && sweetsStreak <= 15 },
+      { label:"Days 16+", pts:"5 pts/day", active: sweetsStreak > 15 },
+    ];
+    const tierHTML = tiers.map(t => `
+      <div class="tier-pill ${t.active ? 'active' : ''}">
+        <div style="font-weight:${t.active ? 700 : 400}">${t.label}</div>
+        <div class="tier-pts">${t.pts}</div>
+      </div>`).join("");
+    streakCardHTML = `
+      <div class="streak-card">
+        <div><div class="streak-num">${sweetsStreak} days</div><div class="streak-sub">sweets-free streak</div></div>
+        <div class="tier-pills">${tierHTML}</div>
+      </div>`;
+  }
+
+  // Activity buttons
+  const actButtons = ACTIVITIES.map(act => `
+    <button class="act-btn ${entry.activity === act.id ? 'selected' : ''}"
+      onclick="logActivity('${act.id}')">
+      <div class="act-emoji">${act.emoji}</div>
+      <div style="margin-top:6px">${act.label}</div>
+      ${act.points > 0 ? `<div class="act-pts">+${act.points} pts</div>` : ""}
+    </button>`).join("");
+
+  // Water buttons
+  const waterButtons = WATER_LEVELS.map(l => `
+    <button class="water-btn ${(entry.water || 0) >= l ? 'filled' : ''}"
+      onclick="logWater(${l})">
+      <span style="font-size:18px">💧</span>
+      <span>${l}L</span>
+    </button>`).join("");
+
+  document.getElementById("app-content").innerHTML = `
+    <div class="score-card">
+      <div class="score-label">Today's score for ${currentUser}</div>
+      <div class="score-number" style="color:${scoreColor}">${score}</div>
+      <div class="score-status" id="save-status">${saving ? "saving..." : "saved ✓"}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">🏃 Physical Activity</div>
+        ${actBadgeHTML}
+      </div>
+      <div class="section-sub">What did you do today?</div>
+      <div class="activity-grid">${actButtons}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="section-title">💧 Water Intake</div></div>
+      <div class="section-sub">How many litres today?</div>
+      <div class="water-grid">
+        ${waterButtons}
+        <span class="water-total">${entry.water || 0} / 4L</span>
+      </div>
+      <div class="hint">Every 0.5L = +1 pt · Max +8 pts at 4L</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">🍬 Sweets Today?</div>
+        ${sweetsBadgeHTML}
+      </div>
+      <div class="section-sub">Did you have sweets or junk food today?</div>
+      ${streakCardHTML}
+      <div class="sweets-btns">
+        <button class="sweets-btn no-sweets ${entry.hadSweets === false ? 'selected' : ''}" onclick="logSweets(false)">
+          <div class="sweets-btn-emoji">✅</div>
+          <div style="margin-top:8px">No sweets today!</div>
+          <div class="sweets-btn-hint">+${noSweetsPts} pts · extends streak</div>
+        </button>
+        <button class="sweets-btn had-sweets ${entry.hadSweets === true ? 'selected' : ''}" onclick="logSweets(true)">
+          <div class="sweets-btn-emoji">🍬</div>
+          <div style="margin-top:8px">Had sweets</div>
+          <div class="sweets-btn-hint">0 pts · resets streak to 0</div>
+        </button>
+      </div>
+      ${entry.hadSweets === true ? `<div class="reset-msg">That's okay! 😊 Start fresh tomorrow and build your streak back up.</div>` : ""}
+    </div>
+  `;
+}
+
+// ── LEADERBOARD VIEW ─────────────────────────────────────────────
+function renderLeaderboard() {
+  const board = buildLeaderboard();
+  const rows = board.map((p, i) => {
+    const isMe = p.name === currentUser;
+    const bg = isMe ? "rgba(167,139,250,0.15)" : i < 3 ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)";
+    const border = isMe ? "1px solid rgba(167,139,250,0.4)" : i < 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.08)";
+    const act = p.todayEntry ? ACTIVITIES.find(a => a.id === p.todayEntry.activity) : null;
+    const waterBadge = p.todayEntry?.water > 0 ? `<span class="lb-badge" style="background:rgba(96,165,250,0.2)">💧 ${p.todayEntry.water}L</span>` : "";
+    const sweetsBadge = p.sweetsStreak > 0 ? `<span class="lb-badge" style="background:rgba(251,191,36,0.2)">🍬 ${p.sweetsStreak}d</span>` : "";
+    const streakSub = p.actStreak > 0 ? `🔥 ${p.actStreak}d activity streak` : "No activity streak";
+    const sweetsSub = p.sweetsStreak > 0 ? ` · 🍬 ${p.sweetsStreak}d sweets-free` : "";
+    const actSub = act ? ` · ${act.emoji} today` : " · hasn't logged today";
+    return `
+      <div class="leaderboard-row" style="background:${bg};border:${border}">
+        <div class="medal" style="font-size:${i < 3 ? '28px' : '18px'}">${getMedal(i+1)}</div>
+        <div style="flex:1">
+          <div class="lb-name">${p.name}${isMe ? '<span class="lb-you">← you</span>' : ""}</div>
+          <div class="lb-sub">${streakSub}${sweetsSub}${actSub}</div>
+        </div>
+        <div class="lb-badges">${waterBadge}${sweetsBadge}</div>
+        <div class="lb-score">
+          <div class="lb-score-num" style="color:${i === 0 ? '#fbbf24' : '#fff'}">${p.totalScore}</div>
+          <div class="lb-score-label">total pts</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("app-content").innerHTML = `
+    <div style="font-size:22px;font-weight:800;margin-bottom:20px">🏆 All-Time Leaderboard</div>
+    ${rows}
+  `;
+}
+
+// ── TEAM VIEW ────────────────────────────────────────────────────
+function renderTeam() {
+  const board = buildLeaderboard();
+  const loggedToday = board.filter(p => p.todayEntry?.activity);
+  const notLogged = board.filter(p => !p.todayEntry?.activity);
+  const topWater = [...board].sort((a,b) => (b.todayEntry?.water||0)-(a.todayEntry?.water||0))[0];
+  const topAct = [...board].sort((a,b) => b.actStreak-a.actStreak)[0];
+  const topSweets = [...board].sort((a,b) => b.sweetsStreak-a.sweetsStreak)[0];
+
+  const highlights = [
+    { label:"💧 Most Hydrated", name:topWater?.name, val:`${topWater?.todayEntry?.water||0}L today`, color:"#60a5fa" },
+    { label:"🔥 Activity Streak", name:topAct?.name, val:`${topAct?.actStreak} days`, color:"#f97316" },
+    { label:"🍬 Sweets-Free Champ", name:topSweets?.name, val:`${topSweets?.sweetsStreak} days`, color:"#fbbf24" },
+  ].map(h => `
+    <div class="highlight-card">
+      <div class="highlight-label">${h.label}</div>
+      <div class="highlight-name" style="color:${h.color}">${h.name}</div>
+      <div class="highlight-val">${h.val}</div>
+    </div>`).join("");
+
+  const loggedChips = loggedToday.map(p => {
+    const act = ACTIVITIES.find(a => a.id === p.todayEntry.activity);
+    return `<div class="team-chip ${p.name === currentUser ? 'me' : ''}">
+      <strong>${p.name}</strong>
+      <span style="margin-left:8px">${act?.emoji||""}</span>
+      ${p.todayEntry.water > 0 ? `<span style="margin-left:6px">💧${p.todayEntry.water}L</span>` : ""}
+      ${p.sweetsStreak > 0 ? `<span style="margin-left:6px">🍬${p.sweetsStreak}d</span>` : ""}
+      <span style="margin-left:8px;color:#a78bfa;font-weight:700">+${p.todayScore}pt</span>
+    </div>`;
+  }).join("");
+
+  const notLoggedChips = notLogged.map(p =>
+    `<div class="not-logged-chip">${p.name}</div>`
+  ).join("");
+
+  document.getElementById("app-content").innerHTML = `
+    <div style="font-size:22px;font-weight:800;margin-bottom:20px">👥 Today's Team Snapshot</div>
+    <div class="highlights-grid">${highlights}</div>
+
+    <div style="margin-bottom:24px">
+      <div class="section-heading2" style="color:#a78bfa">✅ Logged today (${loggedToday.length}/${TEAM_MEMBERS.length})</div>
+      <div class="team-chips">${loggedChips || '<span style="color:rgba(255,255,255,0.3)">Nobody has logged yet today</span>'}</div>
+    </div>
+
+    ${notLogged.length > 0 ? `
+    <div>
+      <div class="section-heading2" style="color:rgba(255,255,255,0.4)">⏳ Not logged yet (${notLogged.length})</div>
+      <div class="not-logged-chips">${notLoggedChips}</div>
+    </div>` : ""}
+  `;
+}
+
+// ── Build leaderboard data ────────────────────────────────────────
+function buildLeaderboard() {
+  return TEAM_MEMBERS.map(name => {
+    const entries = allData[name] || {};
+    const totalScore = getTotalScore(entries);
+    const todayEntry = entries[today] || null;
+    const sweetsStreak = getSweetsStreak(entries, today);
+    const todayScore = getScoreForEntry(todayEntry, sweetsStreak);
+    const actStreak = getActivityStreak(entries, today);
+    return { name, totalScore, todayScore, todayEntry, sweetsStreak, actStreak };
+  }).sort((a,b) => b.totalScore - a.totalScore);
+}
+
+// ── Event handlers (global) ───────────────────────────────────────
+window.logActivity = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, activity: id }).then(() => renderLog());
+};
+window.logWater = function(l) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, water: l }).then(() => renderLog());
+};
+window.logSweets = function(val) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[today] || {};
+  saveEntry(currentUser, today, { ...entry, hadSweets: val }).then(() => renderLog());
+};
+window.setView = setView;
+window.setUser = setUser;
+
+// ── Init ─────────────────────────────────────────────────────────
+document.getElementById("header-date").textContent = `${today} · ${TEAM_MEMBERS.length} managers`;
+
+const sel = document.getElementById("user-select");
+TEAM_MEMBERS.forEach(m => {
+  const opt = document.createElement("option");
+  opt.value = m; opt.textContent = m;
+  sel.appendChild(opt);
+});
+sel.addEventListener("change", e => setUser(e.target.value));
+
+subscribeToUpdates();
+loadAllData();
+</script>
+</body>
+</html>
