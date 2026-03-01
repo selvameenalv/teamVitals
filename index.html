@@ -16,6 +16,7 @@
     select option { background: #302b63; }
     button { font-family: inherit; }
     .header {
+      position: relative; z-index: 2;
       background: rgba(255,255,255,0.05);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -53,7 +54,7 @@
       border-color: rgba(167,139,250,0.6);
       font-weight: 700;
     }
-    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 16px; position: relative; z-index: 1; }
     .score-card {
       text-align: center;
       margin-bottom: 32px;
@@ -688,3 +689,213 @@ function renderLog() {
             flex:1;min-width:90px;padding:14px 8px;border-radius:12px;cursor:pointer;text-align:center;
             font-family:inherit;font-size:13px;transition:all 0.2s;
             background:${entry.screenBed === s.id ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.06)'};
+            border:${entry.screenBed === s.id ? '2px solid #818cf8' : '1px solid rgba(255,255,255,0.12)'};
+            color:#fff;font-weight:${entry.screenBed === s.id ? 700 : 400}">
+            <div style="font-size:24px">${s.emoji}</div>
+            <div style="margin-top:6px;font-weight:700">${s.label}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">${s.desc}</div>
+            <div style="font-size:11px;color:${entry.screenBed === s.id ? '#818cf8' : 'rgba(255,255,255,0.4)'};margin-top:3px">
+              ${s.points > 0 ? '+' + s.points + ' pts' : '—'}
+            </div>
+          </button>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── LEADERBOARD VIEW ─────────────────────────────────────────────
+function renderLeaderboard() {
+  const board = buildLeaderboard();
+  const rows = board.map((p, i) => {
+    const isMe = p.name === currentUser;
+    const bg = isMe ? "rgba(167,139,250,0.15)" : i < 3 ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)";
+    const border = isMe ? "1px solid rgba(167,139,250,0.4)" : i < 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.08)";
+    const act = p.todayEntry ? ACTIVITIES.find(a => a.id === p.todayEntry.activity) : null;
+    const waterBadge = p.todayEntry?.water > 0 ? `<span class="lb-badge" style="background:rgba(96,165,250,0.2)">💧 ${p.todayEntry.water}L</span>` : "";
+    const sweetsBadge = p.sweetsStreak > 0 ? `<span class="lb-badge" style="background:rgba(251,191,36,0.2)">🍬 ${p.sweetsStreak}d</span>` : "";
+    const sleepOpt = SLEEP_OPTIONS.find(s => s.id === p.todayEntry?.sleep);
+    const sleepBadge = sleepOpt ? `<span class="lb-badge" style="background:rgba(99,102,241,0.2)">${sleepOpt.emoji} ${sleepOpt.label}</span>` : "";
+    const streakSub = p.actStreak > 0 ? `🔥 ${p.actStreak}d activity streak` : "No activity streak";
+    const sweetsSub = p.sweetsStreak > 0 ? ` · 🍬 ${p.sweetsStreak}d sweets-free` : "";
+    const actSub = act ? ` · ${act.emoji} today` : " · hasn't logged today";
+    return `
+      <div class="leaderboard-row" style="background:${bg};border:${border}">
+        <div class="medal" style="font-size:${i < 3 ? '28px' : '18px'}">${getMedal(i+1)}</div>
+        <div style="flex:1">
+          <div class="lb-name">${p.name}${isMe ? '<span class="lb-you">← you</span>' : ""}</div>
+          <div class="lb-sub">${streakSub}${sweetsSub}${actSub}</div>
+        </div>
+        <div class="lb-badges">${waterBadge}${sweetsBadge}${sleepBadge}</div>
+        <div class="lb-score">
+          <div class="lb-score-num" style="color:${i === 0 ? '#fbbf24' : '#fff'}">${p.totalScore}</div>
+          <div class="lb-score-label">total pts</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("app-content").innerHTML = `
+    <div style="font-size:22px;font-weight:800;margin-bottom:20px">🏆 All-Time Leaderboard</div>
+    ${rows}
+  `;
+}
+
+// ── TEAM VIEW ────────────────────────────────────────────────────
+function renderTeam() {
+  const board = buildLeaderboard();
+  const loggedToday = board.filter(p => p.todayEntry?.activity);
+  const notLogged = board.filter(p => !p.todayEntry?.activity);
+  const topWater = [...board].sort((a,b) => (b.todayEntry?.water||0)-(a.todayEntry?.water||0))[0];
+  const topAct = [...board].sort((a,b) => b.actStreak-a.actStreak)[0];
+  const topSweets = [...board].sort((a,b) => b.sweetsStreak-a.sweetsStreak)[0];
+
+  const highlights = [
+    { label:"💧 Most Hydrated", name:topWater?.name, val:`${topWater?.todayEntry?.water||0}L today`, color:"#60a5fa" },
+    { label:"🔥 Activity Streak", name:topAct?.name, val:`${topAct?.actStreak} days`, color:"#f97316" },
+    { label:"🍬 Sweets-Free Champ", name:topSweets?.name, val:`${topSweets?.sweetsStreak} days`, color:"#fbbf24" },
+  ].map(h => `
+    <div class="highlight-card">
+      <div class="highlight-label">${h.label}</div>
+      <div class="highlight-name" style="color:${h.color}">${h.name}</div>
+      <div class="highlight-val">${h.val}</div>
+    </div>`).join("");
+
+  const loggedChips = loggedToday.map(p => {
+    const act = ACTIVITIES.find(a => a.id === p.todayEntry.activity);
+    return `<div class="team-chip ${p.name === currentUser ? 'me' : ''}">
+      <strong>${p.name}</strong>
+      <span style="margin-left:8px">${act?.emoji||""}</span>
+      ${p.todayEntry.water > 0 ? `<span style="margin-left:6px">💧${p.todayEntry.water}L</span>` : ""}
+      ${p.sweetsStreak > 0 ? `<span style="margin-left:6px">🍬${p.sweetsStreak}d</span>` : ""}
+      ${p.todayEntry?.sleep ? `<span style="margin-left:6px">${SLEEP_OPTIONS.find(s=>s.id===p.todayEntry.sleep)?.emoji||''}</span>` : ""}
+      <span style="margin-left:8px;color:#a78bfa;font-weight:700">+${p.todayScore}pt</span>
+    </div>`;
+  }).join("");
+
+  const notLoggedChips = notLogged.map(p =>
+    `<div class="not-logged-chip">${p.name}</div>`
+  ).join("");
+
+  document.getElementById("app-content").innerHTML = `
+    <div style="font-size:22px;font-weight:800;margin-bottom:20px">👥 Today's Team Snapshot</div>
+    <div class="highlights-grid">${highlights}</div>
+
+    <div style="margin-bottom:24px">
+      <div class="section-heading2" style="color:#a78bfa">✅ Logged today (${loggedToday.length}/${TEAM_MEMBERS.length})</div>
+      <div class="team-chips">${loggedChips || '<span style="color:rgba(255,255,255,0.3)">Nobody has logged yet today</span>'}</div>
+    </div>
+
+    ${notLogged.length > 0 ? `
+    <div>
+      <div class="section-heading2" style="color:rgba(255,255,255,0.4)">⏳ Not logged yet (${notLogged.length})</div>
+      <div class="not-logged-chips">${notLoggedChips}</div>
+    </div>` : ""}
+  `;
+}
+
+// ── Build leaderboard data ────────────────────────────────────────
+function buildLeaderboard() {
+  return TEAM_MEMBERS.map(name => {
+    const entries = allData[name] || {};
+    const totalScore = getTotalScore(entries);
+    const todayEntry = entries[today] || null;
+    const sweetsStreak = getSweetsStreak(entries, today);
+    const todayScore = getScoreForEntry(todayEntry, sweetsStreak);
+    const actStreak = getActivityStreak(entries, today);
+    return { name, totalScore, todayScore, todayEntry, sweetsStreak, actStreak };
+  }).sort((a,b) => b.totalScore - a.totalScore);
+}
+
+// ── Event handlers (global) ───────────────────────────────────────
+window.logActivity = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, activity: id }).then(() => renderLog());
+};
+window.logWater = function(l) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, water: l }).then(() => renderLog());
+};
+window.logSweets = function(val) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, hadSweets: val }).then(() => renderLog());
+};
+window.changeDate = function(date) {
+  if (date > today) return;
+  selectedDate = date;
+  renderLog();
+};
+window.logScreenDay = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, screenDay: id }).then(() => renderLog());
+};
+window.logScreenBed = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, screenBed: id }).then(() => renderLog());
+};
+window.logSleep = function(id) {
+  const entries = allData[currentUser] || {};
+  const entry = entries[selectedDate] || {};
+  saveEntry(currentUser, selectedDate, { ...entry, sleep: id }).then(() => renderLog());
+};
+window.setView = setView;
+window.setUser = setUser;
+
+// ── Init ─────────────────────────────────────────────────────────
+document.getElementById("header-date").textContent = `${today} · ${TEAM_MEMBERS.length} managers`;
+
+const sel = document.getElementById("user-select");
+const placeholder = document.createElement("option");
+placeholder.value = ""; placeholder.textContent = "Select name...";
+placeholder.disabled = true; placeholder.selected = true;
+sel.appendChild(placeholder);
+TEAM_MEMBERS.forEach(m => {
+  const opt = document.createElement("option");
+  opt.value = m; opt.textContent = m;
+  sel.appendChild(opt);
+});
+sel.addEventListener("change", e => { if (e.target.value) setUser(e.target.value); });
+updateStickyBadge();
+
+subscribeToUpdates();
+loadAllData();
+
+// ── Sticky name badge ─────────────────────────────────────────────
+function updateStickyBadge() {
+  const badge = document.getElementById("sticky-user-badge");
+  if (badge) badge.textContent = currentUser ? "👤 " + currentUser : "";
+  const watermark = document.getElementById("name-watermark");
+  if (watermark) watermark.textContent = currentUser || "";
+}
+const origSetUser = window.setUser;
+window.setUser = function(name) {
+  origSetUser(name);
+  updateStickyBadge();
+};
+</script>
+
+<!-- Sticky floating name badge -->
+<div id="sticky-user-badge" style="
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:rgba(167,139,250,0.25);
+  border:1.5px solid rgba(167,139,250,0.6);
+  backdrop-filter:blur(10px);
+  color:#fff;
+  font-family:'Trebuchet MS',Georgia,serif;
+  font-size:13px;
+  font-weight:700;
+  padding:10px 16px;
+  border-radius:20px;
+  z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  pointer-events:none;
+  letter-spacing:0.2px;
+">👤 Anand</div>
+
+</body>
+</html>
